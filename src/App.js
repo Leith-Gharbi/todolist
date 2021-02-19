@@ -17,3 +17,4 @@ export default App;
 
 //npm i --save bootstrap
 // npm i --save redux react-redux
+//npm i --save uuid
