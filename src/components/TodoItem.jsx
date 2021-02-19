@@ -1,6 +1,7 @@
 import React from 'react';
 
-const TodoItem = () => {
+const TodoItem = (props) => {
+    
     return ( <>
     <div className="row mx-2 align-items-center">
         <div>#1</div>
