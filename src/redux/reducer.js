@@ -1,6 +1,8 @@
 import {ADD_TODO,DELETE_TODO,UPDATE_TODO} from "./actions";
 
-export let reducer=(state,action)=>{
+import {todo} from './states';
+
+export let reducer=(state=todo,action)=>{
 
 switch (action.type) {
     case ADD_TODO:
