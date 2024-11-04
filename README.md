@@ -73,34 +73,36 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/t
 
 <#
 .SYNOPSIS
-    Script PowerShell pour ajouter ou retirer un utilisateur d'un groupe Azure AD et assigner ou supprimer un numéro de téléphone dans Microsoft Teams.
+    PowerShell script for automatically assigning or removing a phone number (lineURI) to/from a user in Microsoft Teams.
 
 .DESCRIPTION
-    Ce script utilise une application Azure AD et un certificat pour se connecter à Microsoft Teams et Azure AD sans interaction de l'utilisateur.
-    Il peut soit ajouter un utilisateur à un groupe Azure AD et assigner un numéro de téléphone, soit retirer l'utilisateur du groupe et supprimer le numéro.
-    Le type de traitement est contrôlé par le paramètre Action.
+    This script connects to Microsoft Teams and Azure AD using an Azure AD application and a certificate, allowing for automated, unattended actions.
+    It can either:
+      - Add a user to an Azure AD group and assign them a phone number.
+      - Remove a user from an Azure AD group and remove their phone number.
+    The action type is controlled by the "Action" parameter.
 
 .PARAMETER UserPrincipalName
-    Le nom principal de l'utilisateur (UPN) pour lequel l'action doit être effectuée (ex: user@domain.com).
+    The User Principal Name (UPN) of the user for whom the action will be performed (e.g., user@domain.com).
 
 .PARAMETER PhoneNumber
-    Le numéro de téléphone à assigner ou supprimer, en format international (ex: +1234567890).
+    The phone number to assign or remove, in international format (e.g., +1234567890).
 
 .PARAMETER LogFile
-    Le chemin complet du fichier de log où les informations seront enregistrées (ex: C:\Logs\ManagePhoneNumber.log).
+    The full path to the log file where information will be recorded (e.g., C:\Logs\ManagePhoneNumber.log).
 
 .PARAMETER Action
-    Spécifie l'action à effectuer : "Assign" pour ajouter au groupe et assigner un numéro, "Remove" pour retirer du groupe et supprimer le numéro.
+    Specifies the action to perform: "Assign" to add the user to the group and assign a phone number, "Remove" to remove the user from the group and delete their phone number.
 
 .EXAMPLE
-    .\ManagePhoneNumber.ps1 -UserPrincipalName "user@domain.com" -PhoneNumber "+1234567890" -LogFile "C:\Logs\ManagePhoneNumber.log" -Action "Assign"
+    .\AutomaticManagePhoneNumber.ps1 -UserPrincipalName "user@domain.com" -PhoneNumber "+1234567890" -LogFile "C:\Logs\ManagePhoneNumber.log" -Action "Assign"
 
-    .\ManagePhoneNumber.ps1 -UserPrincipalName "user@domain.com" -PhoneNumber "+1234567890" -LogFile "C:\Logs\ManagePhoneNumber.log" -Action "Remove"
+    .\AutomaticManagePhoneNumber.ps1 -UserPrincipalName "user@domain.com" -PhoneNumber "+1234567890" -LogFile "C:\Logs\ManagePhoneNumber.log" -Action "Remove"
 
 .NOTES
-    - Ce script nécessite les modules MicrosoftTeams et AzureAD.
-    - Assurez-vous que l'application Azure AD dispose des autorisations nécessaires.
-    - Le certificat doit être installé dans le magasin CurrentUser\My.
+    - This script requires both the MicrosoftTeams and AzureAD modules.
+    - Ensure that the Azure AD application has the necessary permissions.
+    - The certificate must be installed in the CurrentUser\My store.
 #>
 
 param(
@@ -118,15 +120,15 @@ param(
     [string]$Action
 )
 
-# Paramètres d'application Azure AD
-$TenantId = "votre-tenant-id"        # ID du locataire Azure AD
-$ClientId = "votre-app-id"           # ID de l'application (AppId)
-$CertificateThumbprint = "votre-certificat-thumbprint" # Empreinte numérique du certificat
+# Azure AD application settings
+$TenantId = "your-tenant-id"        # Azure AD Tenant ID
+$ClientId = "your-app-id"           # Application (AppId) ID
+$CertificateThumbprint = "your-certificate-thumbprint" # Certificate thumbprint
 
-# ID du groupe Azure AD
-$GroupId = "votre-group-id" # Remplacez par l'ID réel du groupe office365licences_teams_Phone_mobile
+# Azure AD Group ID
+$GroupId = "your-group-id" # Replace with the actual ID of the group office365licences_teams_Phone_mobile
 
-# Fonction de journalisation
+# Logging function
 function Write-Log {
     param (
         [string]$Message
@@ -137,81 +139,82 @@ function Write-Log {
     Write-Output $LogMessage
 }
 
-# Début du processus
-Write-Log "Début du processus pour l'utilisateur $UserPrincipalName avec l'action $Action et le numéro $PhoneNumber."
+# Start process
+Write-Log "Process started for user $UserPrincipalName with action $Action and phone number $PhoneNumber."
 
-# Charger le certificat à partir du magasin de certificats local
+# Load certificate from the local store
 try {
-    Write-Log "Chargement du certificat avec l'empreinte numérique spécifiée."
+    Write-Log "Loading certificate with the specified thumbprint."
     $Certificate = Get-Item "Cert:\CurrentUser\My\$CertificateThumbprint"
     if (-not $Certificate) {
-        throw "Certificat introuvable avec l'empreinte numérique spécifiée."
+        throw "Certificate not found with the specified thumbprint."
     }
 } catch {
-    Write-Log "Erreur : $_"
+    Write-Log "Error: $_"
     exit
 }
 
-# Connexion à Microsoft Teams et Azure AD en utilisant l'authentification par certificat
+# Connect to Microsoft Teams and Azure AD using certificate-based authentication
 try {
-    Write-Log "Tentative de connexion à Microsoft Teams et Azure AD avec le certificat."
+    Write-Log "Attempting to connect to Microsoft Teams and Azure AD with certificate."
     Connect-MicrosoftTeams -TenantId $TenantId -ClientId $ClientId -CertificateThumbprint $CertificateThumbprint
     Connect-AzureAD -TenantId $TenantId -ClientId $ClientId -CertificateThumbprint $CertificateThumbprint
-    Write-Log "Connexion réussie à Microsoft Teams et Azure AD."
+    Write-Log "Successfully connected to Microsoft Teams and Azure AD."
 } catch {
-    Write-Log "Erreur lors de la connexion : $_"
+    Write-Log "Connection error: $_"
     exit
 }
 
-# Exécuter l'action basée sur le paramètre Action
+# Perform action based on the Action parameter
 if ($Action -eq "Assign") {
     try {
-        # Ajouter l'utilisateur au groupe Azure AD
-        Write-Log "Recherche de l'utilisateur $UserPrincipalName dans Azure AD."
+        # Add user to Azure AD group
+        Write-Log "Searching for user $UserPrincipalName in Azure AD."
         $User = Get-AzureADUser -ObjectId $UserPrincipalName
-        Write-Log "Ajout de l'utilisateur $UserPrincipalName au groupe $GroupId."
+        Write-Log "Adding user $UserPrincipalName to group $GroupId."
         Add-AzureADGroupMember -ObjectId $GroupId -RefObjectId $User.ObjectId
-        Write-Log "Succès : L'utilisateur $UserPrincipalName a été ajouté au groupe $GroupId."
+        Write-Log "Success: User $UserPrincipalName has been added to group $GroupId."
     } catch {
-        Write-Log "Erreur lors de l'ajout de l'utilisateur au groupe : $_"
+        Write-Log "Error adding user to group: $_"
         exit
     }
 
     try {
-        # Vérifier que le numéro de téléphone est au format international
+        # Validate phone number format
         if ($PhoneNumber -notmatch "^\+\d+$") {
-            throw "Le numéro de téléphone doit être au format international (ex: +1234567890)."
+            throw "Phone number must be in international format (e.g., +1234567890)."
         }
         
-        # Assigner le numéro de téléphone à l'utilisateur
-        Write-Log "Tentative d'assignation du numéro de téléphone $PhoneNumber à l'utilisateur $UserPrincipalName."
+        # Assign phone number to user
+        Write-Log "Attempting to assign phone number $PhoneNumber to user $UserPrincipalName."
         Set-CsPhoneNumberAssignment -Identity $UserPrincipalName -PhoneNumber $PhoneNumber -PhoneNumberType CallingPlan
-        Write-Log "Succès : Le numéro de téléphone $PhoneNumber a été assigné à l'utilisateur $UserPrincipalName."
+        Write-Log "Success: Phone number $PhoneNumber has been assigned to user $UserPrincipalName."
     } catch {
-        Write-Log "Erreur lors de l'assignation du numéro de téléphone : $_"
+        Write-Log "Error assigning phone number: $_"
         exit
     }
 
 } elseif ($Action -eq "Remove") {
     try {
-        # Retirer l'utilisateur du groupe Azure AD
-        Write-Log "Recherche de l'utilisateur $UserPrincipalName dans Azure AD pour le retrait du groupe."
+        # Remove user from Azure AD group
+        Write-Log "Searching for user $UserPrincipalName in Azure AD to remove from group."
         $User = Get-AzureADUser -ObjectId $UserPrincipalName
-        Write-Log "Retrait de l'utilisateur $UserPrincipalName du groupe $GroupId."
+        Write-Log "Removing user $UserPrincipalName from group $GroupId."
         Remove-AzureADGroupMember -ObjectId $GroupId -MemberId $User.ObjectId
-        Write-Log "Succès : L'utilisateur $UserPrincipalName a été retiré du groupe $GroupId."
+        Write-Log "Success: User $UserPrincipalName has been removed from group $GroupId."
     } catch {
-        Write-Log "Erreur lors du retrait de l'utilisateur du groupe : $_"
+        Write-Log "Error removing user from group: $_"
         exit
     }
 
     try {
-        # Supprimer le numéro de téléphone de l'utilisateur
-        Write-Log "Tentative de suppression du numéro de téléphone pour l'utilisateur $UserPrincipalName."
+        # Remove phone number from user
+        Write-Log "Attempting to remove phone number for user $UserPrincipalName."
         Remove-CsPhoneNumberAssignment -Identity $UserPrincipalName
-        Write-Log "Succès : Le numéro de téléphone a été supprimé pour l'utilisateur $UserPrincipalName."
+        Write-Log "Success: Phone number has been removed for user $UserPrincipalName."
     } catch {
-        Write-Log "Erreur lors de la suppression du numéro de téléphone : $_"
+        Write-Log "Error removing phone number: $_"
         exit
     }
 }
+
