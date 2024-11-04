@@ -160,7 +160,8 @@ try {
     Write-Log "Loading certificate with the specified thumbprint."
     $Certificate = Get-Item "Cert:\CurrentUser\My\$CertificateThumbprint"
     if (-not $Certificate) {
-        throw "Certificate not found with the specified thumbprint."
+        Write-Log "Error: Certificate not found with the specified thumbprint."
+        return Create-ResponseObject -Status 500 -Message "Failed" -Details "Certificate not found with the specified thumbprint."
     }
 } catch {
     Write-Log "Error: $_"
@@ -195,7 +196,8 @@ if ($Action -eq "Assign") {
     try {
         # Validate phone number format
         if ($PhoneNumber -notmatch "^\+\d+$") {
-            throw "Phone number must be in international format (e.g., +1234567890)."
+            Write-Log "Error: Phone number must be in international format (e.g., +1234567890)."
+            return Create-ResponseObject -Status 500 -Message "Failed" -Details "Phone number must be in international format (e.g., +1234567890)."
         }
         
         # Assign phone number to user
@@ -232,4 +234,5 @@ if ($Action -eq "Assign") {
         return Create-ResponseObject -Status 500 -Message "Failed" -Details $_.Exception.Message
     }
 }
+
 
