@@ -139,6 +139,122 @@ function Write-Log {
     Write-Output $LogMessage
 }
 
+# Function to create response object
+function Create-ResponseObject {
+    param (
+        [int]$Status,
+        [string]$Message,
+        [string]$Details
+    )
+    [PsCustomObject]@{
+        Status  = $Status
+        Message = $Message
+        Details = $Details
+    }
+}
+
+# Start process
+Write-Log "Process started for user $UserPrincipalName with action $Action and phone number $PhoneNumber."
+
+# Load certificate from the local store
+try {
+    Write-Log "Loading certificate with the specified thumbprint."
+    $Certificate = Get-Item "Cert:\CurrentUser\My\$CertificateThumbprint"
+    if (-not $Certificate) {
+        throw "Certificate not found with the specified thumbprint."
+    }
+} catch {
+    Write-Log "Error: $_"
+    return Create-ResponseObject -Status 500 -Message "Failed" -Details $_.Exception.Message
+}
+
+# Connect to Microsoft Teams and Azure AD using certificate-based authentication
+try {
+    Write-Log "Attempting to connect to Microsoft Teams and Azure AD with certificate."
+    Connect-MicrosoftTeams -TenantId $TenantId -ClientId $ClientId -CertificateThumbprint $CertificateThumbprint
+    Connect-AzureAD -TenantId $TenantId -ClientId $ClientId -CertificateThumbprint $CertificateThumbprint
+    Write-Log "Successfully connected to Microsoft Teams and Azure AD."
+} catch {
+    Write-Log "Connection error: $_"
+    return Create-ResponseObject -Status 500 -Message "Failed" -Details $_.Exception.Message
+}
+
+# Perform action based on the Action parameter
+if ($Action -eq "Assign") {
+    try {
+        # Add user to Azure AD group
+        Write-Log "Searching for user $UserPrincipalName in Azure AD."
+        $User = Get-AzureADUser -ObjectId $UserPrincipalName
+        Write-Log "Adding user $UserPrincipalName to group $GroupId."
+        Add-AzureADGroupMember -ObjectId $GroupId -RefObjectId $User.ObjectId
+        Write-Log "Success: User $UserPrincipalName has been added to group $GroupId."
+    } catch {
+        Write-Log "Error adding user to group: $_"
+        return Create-ResponseObject -Status 500 -Message "Failed" -Details $_.Exception.Message
+    }
+
+    try {
+        # Validate phone number format
+        if ($PhoneNumber -notmatch "^\+\d+$") {
+            throw "Phone number must be in international format (e.g., +1234567890)."
+        }
+        
+        # Assign phone number to user
+        Write-Log "Attempting to assign phone number $PhoneNumber to user $UserPrincipalName."
+        Set-CsPhoneNumberAssignment -Identity $UserPrincipalName -PhoneNumber $PhoneNumber -PhoneNumberType CallingPlan
+        Write-Log "Success: Phone number $PhoneNumber has been assigned to user $UserPrincipalName."
+        return Create-ResponseObject -Status 200 -Message "Success" -Details "Operation Assign succeeded."
+    } catch {
+        Write-Log "Error assigning phone number: $_"
+        return Create-ResponseObject -Status 500 -Message "Failed" -Details $_.Exception.Message
+    }
+
+} elseif ($Action -eq "Remove") {
+    try {
+        # Remove user from Azure AD group
+        Write-Log "Searching for user $UserPrincipalName in Azure AD to remove from group."
+        $User = Get-AzureADUser -ObjectId $UserPrincipalName
+        Write-Log "Removing user $UserPrincipalName from group $GroupId."
+        Remove-AzureADGroupMember -ObjectId $GroupId -MemberId $User.ObjectId
+        Write-Log "Success: User $UserPrincipalName has been removed from group $GroupId."
+    } catch {
+        Write-Log "Error removing user from group: $_"
+        return Create-ResponseObject -Status 500 -Message "Failed" -Details $_.Exception.Message
+    }
+
+    try {
+        # Remove phone number from user
+        Write-Log "Attempting to remove phone number for user $UserPrincipalName."
+        Remove-CsPhoneNumberAssignment -Identity $UserPrincipalName
+        Write-Log "Success: Phone number has been removed for user $UserPrincipalName."
+        return Create-ResponseObject -Status 200 -Message "Success" -Details "Operation Remove succeeded."
+    } catch {
+        Write-Log "Error removing phone number: $_"
+        return Create-ResponseObject -Status 500 -Message "Failed" -Details $_.Exception.Message
+    }
+}
+$Action
+)
+
+# Azure AD application settings
+$TenantId = "your-tenant-id"        # Azure AD Tenant ID
+$ClientId = "your-app-id"           # Application (AppId) ID
+$CertificateThumbprint = "your-certificate-thumbprint" # Certificate thumbprint
+
+# Azure AD Group ID
+$GroupId = "your-group-id" # Replace with the actual ID of the group office365licences_teams_Phone_mobile
+
+# Logging function
+function Write-Log {
+    param (
+        [string]$Message
+    )
+    $Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $LogMessage = "$Timestamp - $Message"
+    Add-Content -Path $LogFile -Value $LogMessage
+    Write-Output $LogMessage
+}
+
 # Start process
 Write-Log "Process started for user $UserPrincipalName with action $Action and phone number $PhoneNumber."
 
