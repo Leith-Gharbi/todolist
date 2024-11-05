@@ -69,19 +69,18 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
 
-
 <#
 .SYNOPSIS
-    Retrieves user information from Azure Active Directory based on the provided User Principal Name (UPN).
+    Retrieves the phone number assigned to a user in Microsoft Teams based on the provided User Principal Name (UPN).
 
 .DESCRIPTION
-    This script connects to Azure Active Directory, retrieves user details for the specified UPN, and returns the information as a PSCustomObject.
+    This script connects to Microsoft Teams, retrieves the phone number assigned to the specified UPN, and returns the information as a PSCustomObject.
 
 .PARAMETER UserPrincipalName
-    The User Principal Name (UPN) of the user whose information is to be retrieved.
+    The User Principal Name (UPN) of the user whose phone number is to be retrieved.
 
 .EXAMPLE
-    .\Get-AzureADUserInfo.ps1 -UserPrincipalName "user@domain.com"
+    .\Get-TeamsUserPhoneNumber.ps1 -UserPrincipalName "user@domain.com"
 
 .NOTES
     Author: Your Name
@@ -94,35 +93,33 @@ param (
 )
 
 try {
-    # Connect to Azure AD
-    Connect-AzureAD -ErrorAction Stop
+    # Connect to Microsoft Teams
+    Connect-MicrosoftTeams -ErrorAction Stop
 
-    # Retrieve user information
-    $user = Get-AzureADUser -ObjectId $UserPrincipalName -ErrorAction Stop
+    # Retrieve phone number assignment
+    $phoneAssignment = Get-CsPhoneNumberAssignment -AssignedPstnTargetId $UserPrincipalName -ErrorAction Stop
 
-    if ($null -eq $user) {
-        Write-Error "User with UPN '$UserPrincipalName' not found."
-        return
+    if ($null -eq $phoneAssignment) {
+        Write-Output "No phone number assigned to user with UPN '$UserPrincipalName'."
+    } else {
+        # Create PSCustomObject with phone number details
+        $phoneInfo = [PSCustomObject]@{
+            UserPrincipalName = $UserPrincipalName
+            PhoneNumber       = $phoneAssignment.TelephoneNumber
+            NumberType        = $phoneAssignment.NumberType
+            ActivationState   = $phoneAssignment.ActivationState
+        }
+
+        # Output phone information
+        return $phoneInfo
     }
-
-    # Create PSCustomObject with user details
-    $userInfo = [PSCustomObject]@{
-        DisplayName = $user.DisplayName
-        Email       = $user.Mail
-        Department  = $user.Department
-        JobTitle    = $user.JobTitle
-        MobilePhone = $user.Mobile
-    }
-
-    # Output user information
-    return $userInfo
 }
 catch {
     Write-Error "An error occurred: $_"
 }
 finally {
-    # Disconnect from Azure AD
-    Disconnect-AzureAD
+    # Disconnect from Microsoft Teams
+    Disconnect-MicrosoftTeams
 }
 
 
