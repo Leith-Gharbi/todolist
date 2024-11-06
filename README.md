@@ -69,57 +69,16 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
 
-<#
-.SYNOPSIS
-    Retrieves the phone number assigned to a user in Microsoft Teams based on the provided User Principal Name (UPN).
+Hello [Recipient's Name],
 
-.DESCRIPTION
-    This script connects to Microsoft Teams, retrieves the phone number assigned to the specified UPN, and returns the information as a PSCustomObject.
+I hope this message finds you well.
 
-.PARAMETER UserPrincipalName
-    The User Principal Name (UPN) of the user whose phone number is to be retrieved.
+I wanted to inform you that I have reviewed the code with Ferhat regarding the API CIB. We discovered that the error generated was due to a missing ISO country code in the mapping file between the country name and the ISO code. We have corrected this by updating the mapping file.
 
-.EXAMPLE
-    .\Get-TeamsUserPhoneNumber.ps1 -UserPrincipalName "user@domain.com"
+To validate this fix and ensure that the issue is resolved, would it be possible to create new requests in ServiceNow? This would help us observe the behavior of the API and confirm that the solution is effective.
 
-.NOTES
-    Author: Your Name
-    Date:   November 5, 2024
-#>
+Please feel free to reach out if you have any additional questions.
 
-param (
-    [Parameter(Mandatory = $true, HelpMessage = "Enter the User Principal Name (UPN) of the user.")]
-    [string]$UserPrincipalName
-)
-
-try {
-    # Connect to Microsoft Teams
-    Connect-MicrosoftTeams -ErrorAction Stop
-
-    # Retrieve phone number assignment
-    $phoneAssignment = Get-CsPhoneNumberAssignment -AssignedPstnTargetId $UserPrincipalName -ErrorAction Stop
-
-    if ($null -eq $phoneAssignment) {
-        Write-Output "No phone number assigned to user with UPN '$UserPrincipalName'."
-    } else {
-        # Create PSCustomObject with phone number details
-        $phoneInfo = [PSCustomObject]@{
-            UserPrincipalName = $UserPrincipalName
-            PhoneNumber       = $phoneAssignment.TelephoneNumber
-            NumberType        = $phoneAssignment.NumberType
-            ActivationState   = $phoneAssignment.ActivationState
-        }
-
-        # Output phone information
-        return $phoneInfo
-    }
-}
-catch {
-    Write-Error "An error occurred: $_"
-}
-finally {
-    # Disconnect from Microsoft Teams
-    Disconnect-MicrosoftTeams
-}
-
+Best regards,
+Leith Gharbi
 
