@@ -69,16 +69,10 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
 
-Hello [Recipient's Name],
+"Bonjour à tous,
 
-I hope this message finds you well.
+J'espère que vous allez bien. Je voulais vous partager quelques nouvelles. Après en avoir discuté avec notre team leader, il a été décidé que toute nouvelle fonctionnalité MAPLE destinée à la Marketplace devra être validée par Jean-Pierre. Cela fait suite à des préoccupations concernant l'impact potentiel sur notre infrastructure, notamment après la proposition concernant le bouton de synchronisation des produits avec la Marketplace, qui n'a pas été bien reçue.
 
-I wanted to inform you that I have reviewed the code with Ferhat regarding the API CIB. We discovered that the error generated was due to a missing ISO country code in the mapping file between the country name and the ISO code. We have corrected this by updating the mapping file.
+Ainsi, je vous invite à consulter Jean-Pierre en premier lieu pour toute nouvelle fonctionnalité.
 
-To validate this fix and ensure that the issue is resolved, would it be possible to create new requests in ServiceNow? This would help us observe the behavior of the API and confirm that the solution is effective.
-
-Please feel free to reach out if you have any additional questions.
-
-Best regards,
-Leith Gharbi
-
+Merci de votre compréhension."
