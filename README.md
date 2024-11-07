@@ -82,3 +82,24 @@ $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate
 $cert.Import($certPath, $password, [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::Exportable)
 $privateKey = [System.Convert]::ToBase64String($cert.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Pkcs12))
 Write-Output $privateKey
+$header = @{
+    alg = "RS256"
+    typ = "JWT"
+}
+$payload = @{
+    aud = "https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token"
+    iss = "{client_id}"
+    sub = "{client_id}"
+    exp = [int](([DateTimeOffset]::Now.ToUnixTimeSeconds()) + 3600)
+    nbf = [int]([DateTimeOffset]::Now.ToUnixTimeSeconds())
+}
+
+$headerEncoded = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes((ConvertTo-Json $header)))
+$payloadEncoded = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes((ConvertTo-Json $payload)))
+
+$cert = Get-PfxCertificate -FilePath "path\to\your_certificate.pfx" -Password (ConvertTo-SecureString -String "your_passphrase" -Force -AsPlainText)
+$rsa = $cert.PrivateKey
+$signature = [Convert]::ToBase64String($rsa.SignData([System.Text.Encoding]::UTF8.GetBytes("$headerEncoded.$payloadEncoded"), 'SHA256'))
+
+$jwt = "$headerEncoded.$payloadEncoded.$signature"
+Write-Output $jwt
