@@ -69,33 +69,49 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
 
-"Bonjour à tous,
+# Parameters
+$certPath = "path\to\your_certificate.pfx"  # Path to your PFX certificate
+$passphrase = "your_passphrase"             # Passphrase for the PFX certificate
+$tenantId = "{tenant_id}"                   # Your Azure tenant ID
+$clientId = "{client_id}"                   # Your Azure App ID
 
-J'espère que vous allez bien. Je voulais vous partager quelques nouvelles. Après en avoir discuté avec notre team leader, il a été décidé que toute nouvelle fonctionnalité MAPLE destinée à la Marketplace devra être validée par Jean-Pierre. Cela fait suite à des préoccupations concernant l'impact potentiel sur notre infrastructure, notamment après la proposition concernant le bouton de synchronisation des produits avec la Marketplace, qui n'a pas été bien reçue.
-
-Ainsi, je vous invite à consulter Jean-Pierre en premier lieu pour toute nouvelle fonctionnalité.
-
-Merci de votre compréhension."
-$certPath = "path\to\your_certificate.pfx"
-$password = ConvertTo-SecureString -String "your_passphrase" -Force -AsPlainText
+# Import the certificate
+$password = ConvertTo-SecureString -String $passphrase -Force -AsPlainText
 $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2
 $cert.Import($certPath, $password, [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::Exportable)
-$privateKey = [System.Convert]::ToBase64String($cert.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Pkcs12))
-Write-Output $privateKey
+$privateKey = $cert.PrivateKey
+
+# Create JWT Header
 $header = @{
     alg = "RS256"
     typ = "JWT"
 }
-$payload = @{
-    aud = "https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token"
-    iss = "{client_id}"
-    sub = "{client_id}"
-    exp = [int](([DateTimeOffset]::Now.ToUnixTimeSeconds()) + 3600)
-    nbf = [int]([DateTimeOffset]::Now.ToUnixTimeSeconds())
-}
+$headerJson = (ConvertTo-Json $header -Compress)
+$headerEncoded = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($headerJson)).Replace('=', '').Replace('+', '-').Replace('/', '_')
 
-$headerEncoded = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes((ConvertTo-Json $header)))
-$payloadEncoded = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes((ConvertTo-Json $payload)))
+# Create JWT Payload
+$currentUnixTime = [int](([DateTimeOffset]::Now).ToUnixTimeSeconds())
+$expUnixTime = $currentUnixTime + 3600  # Token expiration (1 hour)
+$payload = @{
+    aud = "https://login.microsoftonline.com/$tenantId/oauth2/v2.0/token"
+    iss = $clientId
+    sub = $clientId
+    nbf = $currentUnixTime
+    exp = $expUnixTime
+}
+$payloadJson = (ConvertTo-Json $payload -Compress)
+$payloadEncoded = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($payloadJson)).Replace('=', '').Replace('+', '-').Replace('/', '_')
+
+# Create the JWT signature
+$signingInput = "$headerEncoded.$payloadEncoded"
+$signatureBytes = $privateKey.SignData([System.Text.Encoding]::UTF8.GetBytes($signingInput), 'SHA256')
+$signatureEncoded = [Convert]::ToBase64String($signatureBytes).Replace('=', '').Replace('+', '-').Replace('/', '_')
+
+# Combine to form the final JWT
+$jwt = "$signingInput.$signatureEncoded"
+
+# Output the JWT
+Write-Output $jwt
 
 $cert = Get-PfxCertificate -FilePath "path\to\your_certificate.pfx" -Password (ConvertTo-SecureString -String "your_passphrase" -Force -AsPlainText)
 $rsa = $cert.PrivateKey
