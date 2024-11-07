@@ -79,7 +79,9 @@ $clientId = "{client_id}"                   # Your Azure App ID
 $password = ConvertTo-SecureString -String $passphrase -Force -AsPlainText
 $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2
 $cert.Import($certPath, $password, [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::Exportable)
-$privateKey = $cert.PrivateKey
+
+# Extract the RSA private key
+$rsa = $cert.GetRSAPrivateKey()
 
 # Create JWT Header
 $header = @{
@@ -104,18 +106,11 @@ $payloadEncoded = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetByte
 
 # Create the JWT signature
 $signingInput = "$headerEncoded.$payloadEncoded"
-$signatureBytes = $privateKey.SignData([System.Text.Encoding]::UTF8.GetBytes($signingInput), 'SHA256')
+$signatureBytes = $rsa.SignData([System.Text.Encoding]::UTF8.GetBytes($signingInput), [System.Security.Cryptography.HashAlgorithmName]::SHA256, [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
 $signatureEncoded = [Convert]::ToBase64String($signatureBytes).Replace('=', '').Replace('+', '-').Replace('/', '_')
 
 # Combine to form the final JWT
 $jwt = "$signingInput.$signatureEncoded"
 
 # Output the JWT
-Write-Output $jwt
-
-$cert = Get-PfxCertificate -FilePath "path\to\your_certificate.pfx" -Password (ConvertTo-SecureString -String "your_passphrase" -Force -AsPlainText)
-$rsa = $cert.PrivateKey
-$signature = [Convert]::ToBase64String($rsa.SignData([System.Text.Encoding]::UTF8.GetBytes("$headerEncoded.$payloadEncoded"), 'SHA256'))
-
-$jwt = "$headerEncoded.$payloadEncoded.$signature"
 Write-Output $jwt
