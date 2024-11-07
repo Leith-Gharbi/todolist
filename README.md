@@ -75,13 +75,18 @@ $passphrase = "your_passphrase"             # Passphrase for the PFX certificate
 $tenantId = "{tenant_id}"                   # Your Azure tenant ID
 $clientId = "{client_id}"                   # Your Azure App ID
 
-# Import the certificate
+# Import the certificate with private key
 $password = ConvertTo-SecureString -String $passphrase -Force -AsPlainText
 $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2
 $cert.Import($certPath, $password, [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::Exportable)
 
-# Extract the RSA private key
-$rsa = $cert.GetRSAPrivateKey()
+# Extract the private key as an RSACryptoServiceProvider
+$rsaProvider = $cert.PrivateKey
+
+if (-not ($rsaProvider -is [System.Security.Cryptography.RSACryptoServiceProvider])) {
+    Write-Error "The private key is not compatible with RSACryptoServiceProvider. Please check your certificate format."
+    exit
+}
 
 # Create JWT Header
 $header = @{
@@ -106,7 +111,7 @@ $payloadEncoded = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetByte
 
 # Create the JWT signature
 $signingInput = "$headerEncoded.$payloadEncoded"
-$signatureBytes = $rsa.SignData([System.Text.Encoding]::UTF8.GetBytes($signingInput), [System.Security.Cryptography.HashAlgorithmName]::SHA256, [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
+$signatureBytes = $rsaProvider.SignData([System.Text.Encoding]::UTF8.GetBytes($signingInput), [System.Security.Cryptography.CryptoConfig]::MapNameToOID("SHA256"))
 $signatureEncoded = [Convert]::ToBase64String($signatureBytes).Replace('=', '').Replace('+', '-').Replace('/', '_')
 
 # Combine to form the final JWT
