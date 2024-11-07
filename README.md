@@ -76,3 +76,9 @@ J'espère que vous allez bien. Je voulais vous partager quelques nouvelles. Apr�
 Ainsi, je vous invite à consulter Jean-Pierre en premier lieu pour toute nouvelle fonctionnalité.
 
 Merci de votre compréhension."
+$certPath = "path\to\your_certificate.pfx"
+$password = ConvertTo-SecureString -String "your_passphrase" -Force -AsPlainText
+$cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2
+$cert.Import($certPath, $password, [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::Exportable)
+$privateKey = [System.Convert]::ToBase64String($cert.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Pkcs12))
+Write-Output $privateKey
